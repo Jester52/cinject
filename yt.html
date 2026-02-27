@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Monitor YouTube - Control Remoto</title>
+    <style>
+        body { 
+            background: #000; 
+            color: #ff0000; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .status-box {
+            border: 2px solid #333;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.1);
+        }
+        .loader {
+            border: 4px solid #1a1a1a;
+            border-top: 4px solid #ff0000;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h1 { font-size: 1.5rem; letter-spacing: 2px; margin: 0; }
+        p { color: #666; font-size: 0.9rem; margin-top: 10px; }
+        .sala-tag { color: #444; font-size: 10px; margin-top: 15px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div class="status-box">
+        <div class="loader" id="loader"></div>
+        <h1 id="status">SISTEMA CONECTADO</h1>
+        <p id="sub-status">Esperando señal desde el buscador...</p>
+        <div id="sala-display" class="sala-tag"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+    <script>
+        // 1. CONFIGURACIÓN DE FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyCqNmPPbSLzw7SkQp2QQ1YFNGaCRFSqeQQ",
+            authDomain: "cinyect.firebaseapp.com",
+            databaseURL: "https://cinyect-default-rtdb.firebaseio.com",
+            projectId: "cinyect",
+            storageBucket: "cinyect.firebasestorage.app",
+            messagingSenderId: "747813074248",
+            appId: "1:747813074248:web:a7eec94a6211f45a1a2f7d"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // 2. DETECCIÓN DE SALA PERSONALIZADA
+        const urlParams = new URLSearchParams(window.location.search);
+        const miSala = urlParams.get('id') || 'general';
+        document.getElementById('sala-display').innerText = "Sala actual: " + miSala;
+
+        let ultimaPalabra = "";
+
+        // 3. ESCUCHA ACTIVA EN LA RUTA DE LA SALA
+        database.ref(`usuarios/${miSala}/busquedaActual`).on('value', (snapshot) => {
+            const data = snapshot.val();
+            
+            if (data && data.palabra) {
+                
+                // BLOQUE DE RESET
+                if (data.palabra === "RESET") {
+                    ultimaPalabra = ""; 
+                    document.getElementById('status').innerText = "SISTEMA REINICIADO";
+                    document.getElementById('status').style.color = "#00ff00"; 
+                    document.getElementById('sub-status').innerText = "Todo listo para la siguiente búsqueda";
+                    return; 
+                }
+
+                // SI ES UNA PALABRA NUEVA, REDIRIGIR A YOUTUBE
+                if (data.palabra !== ultimaPalabra) {
+                    ultimaPalabra = data.palabra;
+                    
+                    document.getElementById('status').innerText = "ABRIENDO YOUTUBE...";
+                    document.getElementById('status').style.color = "#ff0000";
+                    document.getElementById('sub-status').innerText = "Buscando: " + data.palabra.toUpperCase();
+                    
+                    setTimeout(() => {
+                        window.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(data.palabra)}`;
+                    }, 1200);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
