@@ -12,19 +12,11 @@
         input { width: 100%; padding: 12px; box-sizing: border-box; background: #3c4043; color: white; border: 1px solid #5f6368; border-radius: 4px; }
         #togglePassword { position: absolute; right: 10px; top: 12px; background: none; border: none; color: #aaa; cursor: pointer; }
         button.main-btn { width: 100%; padding: 12px; background: var(--btn-color); color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        
-        /* Estilos de los links */
         #listaLinks { margin-top: 20px; display: none; }
         .link-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
         .link-box { background: #202124; padding: 10px; border-radius: 4px; font-size: 0.8em; word-break: break-all; flex-grow: 1; border-left: 4px solid var(--btn-color); }
         .copy-btn { background: #444; border: none; color: white; padding: 8px; border-radius: 4px; cursor: pointer; }
         .copy-btn:hover { background: var(--btn-color); color: #000; }
-
-        /* Estilos de instrucciones */
-        .instructions { color: #9aa0a6; background: #303134; padding: 20px; border-radius: 12px; margin-top: 20px; width: 100%; max-width: 400px; font-size: 0.9em; border: 1px dashed #5f6368; }
-        .instructions h3 { color: #8ab4f8; margin-top: 0; }
-        .instructions ol { padding-left: 20px; }
-        .instructions li { margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -41,98 +33,87 @@
     <div id="listaLinks">
         <p>Google:</p>
         <div class="link-container"><div class="link-box" id="url1"></div><button class="copy-btn" onclick="copiarTexto('url1')">Copiar</button></div>
-        
         <p>Monitor:</p>
         <div class="link-container"><div class="link-box" id="url2"></div><button class="copy-btn" onclick="copiarTexto('url2')">Copiar</button></div>
-        
         <p>YouTube:</p>
         <div class="link-container"><div class="link-box" id="url3"></div><button class="copy-btn" onclick="copiarTexto('url3')">Copiar</button></div>
     </div>
 </div>
 
-<div class="instructions">
-    <h3>¿Cómo usar?</h3>
-    <ol>
-        <li>Ingresa tu <b>clave de acceso</b> y presiona "VER" para confirmarla.</li>
-        <li>Escribe un <b>nombre único</b> para tu sala.</li>
-        <li>Haz clic en <b>GENERAR LINKS</b>.</li>
-        <li>Copia los enlaces con el botón <b>"Copiar"</b> y usalos (el orden de los links es Google, palabra buscada y YouTube).</li>
-    </ol>
-</div>
-
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
-<script>
+<script type="module">
+    // 1. Importaciones necesarias del SDK modular
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+
+    // 2. Configuración con tus datos correctos
     const firebaseConfig = {
-        apiKey: "TU_API_KEY",
+        apiKey: "AIzaSyCqNmPPbSLzw7SkQp2QQ1YFNGaCRFSqeQQ",
         authDomain: "cinyect.firebaseapp.com",
         databaseURL: "https://cinyect-default-rtdb.firebaseio.com",
         projectId: "cinyect",
         storageBucket: "cinyect.firebasestorage.app",
-        messagingSenderId: "...",
-        appId: "..."
+        messagingSenderId: "747813074248",
+        appId: "1:747813074248:web:a7eec94a6211f45a1a2f7d"
     };
     
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    // Inicializar Firebase y Base de Datos
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
 
-    function copiarTexto(id) {
+    // Funciones globales (se declaran en window para que el HTML pueda verlas)
+    window.copiarTexto = function(id) {
         const texto = document.getElementById(id).innerText;
-        navigator.clipboard.writeText(texto).then(() => {
-            alert("¡Link copiado!");
-        });
+        if (!texto) return;
+        navigator.clipboard.writeText(texto).then(() => alert("¡Link copiado!"));
     }
 
-    function togglePass() {
+    window.togglePass = function() {
         const p = document.getElementById('claveSecreta');
         const b = document.getElementById('togglePassword');
         p.type = (p.type === "password") ? "text" : "password";
         b.innerText = (p.type === "password") ? "VER" : "OCULTAR";
     }
 
-    async function generarUrls() {
+    window.generarUrls = async function() {
         const CLAVE = "Cronos"; 
         const WEBHOOK_URL = "https://hook.us2.make.com/h1bod1zz05u7cinca4mx7rpsky9l91a2";
-        
         const nombre = document.getElementById('nombreMago').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
         
         if (document.getElementById('claveSecreta').value !== CLAVE) return alert("Clave incorrecta");
         if (!nombre) return alert("Ingresa un nombre");
 
         try {
-            // 1. Guardar en Firebase
-            await database.ref('salas_activas/' + nombre).set({ 
+            // Guardar en Firebase con la nueva sintaxis set(ref(...))
+            await set(ref(database, 'salas_activas/' + nombre), {
                 nombre: nombre, 
-                creado: new Date().toISOString() 
+                creado: new Date().toISOString()
             });
             
-            // 2. Crear Link Largo (Make se encargará de acortarlo ahora)
-            const linkLargo = `https://jester52.github.io/cinject/g.html?id=${nombre}`;
+            const linkGoogle = `https://jester52.github.io/cinject/g.html?id=${nombre}`;
+            const linkMonitor = `https://jester52.github.io/cinject/m.html?id=${nombre}`;
+            const linkYouTube = `https://jester52.github.io/cinject/y.html?id=${nombre}`;
             
-            document.getElementById('url1').innerText = linkLargo;
+            document.getElementById('url1').innerText = linkGoogle;
+            document.getElementById('url2').innerText = linkMonitor;
+            document.getElementById('url3').innerText = linkYouTube;
             document.getElementById('listaLinks').style.display = 'block';
 
-            // 3. Enviar link largo a Make
             await fetch(WEBHOOK_URL, {
                 method: "POST",
-                mode: 'no-cors',
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    nombre: nombre,
-                    link: linkLargo,
-                    status: "EXITO"
-                })
+                body: JSON.stringify({ nombre, google: linkGoogle, monitor: linkMonitor, youtube: linkYouTube })
             });
 
-            alert("¡Sala creada correctamente!");
-        } catch (e) {
-            console.error("Error:", e);
-            alert("Error al procesar la solicitud.");
+            alert("¡Salas generadas y enviadas!");
+        } catch (e) { 
+            console.error(e);
+            alert("Error: " + e.message); 
         }
     }
 </script>
-
 
 </body>
 </html>
