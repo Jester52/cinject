@@ -19,6 +19,12 @@
         .link-box { background: #202124; padding: 10px; border-radius: 4px; font-size: 0.8em; word-break: break-all; flex-grow: 1; border-left: 4px solid var(--btn-color); }
         .copy-btn { background: #444; border: none; color: white; padding: 8px; border-radius: 4px; cursor: pointer; }
         .copy-btn:hover { background: var(--btn-color); color: #000; }
+
+        /* Estilos de instrucciones */
+        .instructions { color: #9aa0a6; background: #303134; padding: 20px; border-radius: 12px; margin-top: 20px; width: 100%; max-width: 400px; font-size: 0.9em; border: 1px dashed #5f6368; }
+        .instructions h3 { color: #8ab4f8; margin-top: 0; }
+        .instructions ol { padding-left: 20px; }
+        .instructions li { margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -44,11 +50,20 @@
     </div>
 </div>
 
+<div class="instructions">
+    <h3>¿Cómo usar?</h3>
+    <ol>
+        <li>Ingresa tu <b>clave de acceso</b> y presiona "VER" para confirmarla.</li>
+        <li>Escribe un <b>nombre único</b> para tu sala.</li>
+        <li>Haz clic en <b>GENERAR LINKS</b>.</li>
+        <li>Copia los enlaces con el botón <b>"Copiar"</b> y usalos (el orden de los links es Google, palabra buscada y YouTube).</li>
+    </ol>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
 <script>
-    // --- PEGA AQUÍ TU CONFIGURACIÓN (de g.html) ---
     const firebaseConfig = {
         apiKey: "TU_API_KEY",
         authDomain: "cinyect.firebaseapp.com",
@@ -62,7 +77,6 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Función para copiar texto al portapapeles
     function copiarTexto(id) {
         const texto = document.getElementById(id).innerText;
         navigator.clipboard.writeText(texto).then(() => {
@@ -77,29 +91,23 @@
         b.innerText = (p.type === "password") ? "VER" : "OCULTAR";
     }
 
-function generarUrls() {
-    const CLAVE = "Cronos"; 
-    const nombre = document.getElementById('nombreMago').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-    
-    if (document.getElementById('claveSecreta').value !== CLAVE) return alert("Clave incorrecta");
-    if (!nombre) return alert("Ingresa un nombre");
-
-    // Guardar en Firebase
-    database.ref('salas_activas/' + nombre).set({ nombre: nombre, creado: new Date().toISOString() })
-    .then(() => {
-        // RUTA BASE FIJA: Aseguramos que siempre apunte a tu proyecto cinject
-        const base = "https://jester52.github.io/cinject/";
+    function generarUrls() {
+        const CLAVE = "Cronos"; 
+        const nombre = document.getElementById('nombreMago').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
         
-        // Generamos los links con el ID dinámico
-        document.getElementById('url1').innerText = `${base}g.html?id=${nombre}`;
-        document.getElementById('url2').innerText = `${base}m.html?id=${nombre}`;
-        document.getElementById('url3').innerText = `${base}yt.html?id=${nombre}`;
-        
-        document.getElementById('listaLinks').style.display = 'block';
-    })
-    .catch(e => alert("Error de conexión: " + e.message));
-}
+        if (document.getElementById('claveSecreta').value !== CLAVE) return alert("Clave incorrecta");
+        if (!nombre) return alert("Ingresa un nombre");
 
+        database.ref('salas_activas/' + nombre).set({ nombre: nombre, creado: new Date().toISOString() })
+        .then(() => {
+            const base = "https://jester52.github.io/cinject/";
+            document.getElementById('url1').innerText = `${base}g.html?id=${nombre}`;
+            document.getElementById('url2').innerText = `${base}m.html?id=${nombre}`;
+            document.getElementById('url3').innerText = `${base}yt.html?id=${nombre}`;
+            document.getElementById('listaLinks').style.display = 'block';
+        })
+        .catch(e => alert("Error de conexión: " + e.message));
+    }
 </script>
 </body>
 </html>
