@@ -91,23 +91,55 @@
         b.innerText = (p.type === "password") ? "VER" : "OCULTAR";
     }
 
-    function generarUrls() {
+    async function generarUrls() {
         const CLAVE = "Cronos"; 
+        // --- PEGA TUS CREDENCIALES AQUÍ ---
+        const BOT_TOKEN = "8657956464:AAGo6S9Xhf0McqaArBrp3yEnd1Z1ZKyrJPU"; // Tu Token de @BotFather
+        const CHAT_ID = "1304022395";                             // Tu ID numérico de @userinfobot
+        // ----------------------------------
+        
         const nombre = document.getElementById('nombreMago').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
         
         if (document.getElementById('claveSecreta').value !== CLAVE) return alert("Clave incorrecta");
         if (!nombre) return alert("Ingresa un nombre");
 
-        database.ref('salas_activas/' + nombre).set({ nombre: nombre, creado: new Date().toISOString() })
-        .then(() => {
+        // Función para enviar mensaje a Telegram
+        const enviarAlerta = async (texto) => {
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(texto)}`;
+            await fetch(url);
+        };
+
+        try {
+            // 1. Guardar en Firebase
+            await database.ref('salas_activas/' + nombre).set({ nombre: nombre, creado: new Date().toISOString() });
+            
             const base = "https://jester52.github.io/cinject/";
-            document.getElementById('url1').innerText = `${base}g.html?id=${nombre}`;
-            document.getElementById('url2').innerText = `${base}m.html?id=${nombre}`;
-            document.getElementById('url3').innerText = `${base}yt.html?id=${nombre}`;
+            const acortar = async (urlLarga, alias) => {
+                const res = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(urlLarga)}&shorturl=${alias}`);
+                if (!res.ok) throw new Error("Fallo en is.gd para " + alias);
+                return await res.text();
+            };
+
+            // 2. Acortar links
+            const link1 = await acortar(`${base}g.html?id=${nombre}`, `g_${nombre}`);
+            const link2 = await acortar(`${base}m.html?id=${nombre}`, `m_${nombre}`);
+            const link3 = await acortar(`${base}yt.html?id=${nombre}`, `yt_${nombre}`);
+
+            document.getElementById('url1').innerText = link1;
+            document.getElementById('url2').innerText = link2;
+            document.getElementById('url3').innerText = link3;
             document.getElementById('listaLinks').style.display = 'block';
-        })
-        .catch(e => alert("Error de conexión: " + e.message));
+
+            // 3. ALERTA DE ÉXITO
+            await enviarAlerta(`✅ Sala "${nombre}" creada correctamente.\n\nLinks:\n${link1}\n${link2}\n${link3}`);
+
+        } catch (e) {
+            // 4. ALERTA DE ERROR
+            alert("Hubo un problema. Se ha enviado una alerta a Telegram.");
+            await enviarAlerta(`⚠️ Error en Cinyect: ${e.message} al intentar crear la sala: "${nombre}"`);
+        }
     }
+
 </script>
 </body>
 </html>
