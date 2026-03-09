@@ -93,51 +93,51 @@
 
     async function generarUrls() {
         const CLAVE = "Cronos"; 
-        const BOT_TOKEN = "8657956464:8657956464:AAGCC_b2IX8uSSzhqLckzA24u0YU_mnvkmg"; 
-        const CHAT_ID = "1304022395"; 
+        const WEBHOOK_URL = "https://hook.us2.make.com/h1bod1zz05u7cinca4mx7rpsky9l91a2"; // Tu URL de Custom Webhook
         
         const nombre = document.getElementById('nombreMago').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
         
         if (document.getElementById('claveSecreta').value !== CLAVE) return alert("Clave incorrecta");
         if (!nombre) return alert("Ingresa un nombre");
 
-        const enviarAlerta = async (texto) => {
-            try {
-                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(texto)}`;
-                await fetch(url);
-            } catch (e) {
-                console.error("Error al enviar alerta a Telegram:", e);
-            }
-        };
-
         try {
             // 1. Guardar en Firebase
             await database.ref('salas_activas/' + nombre).set({ nombre: nombre, creado: new Date().toISOString() });
             
+            // 2. Acortar link
             const base = "https://jester52.github.io/cinject/";
             const alias = `g_${nombre}`;
-
-            // 2. Intentar acortar (sin no-cors para poder verificar si fue exitoso)
-            const urlAcortar = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(base + 'g.html?id=' + nombre)}&shorturl=${alias}`;
-            const res = await fetch(urlAcortar);
+            const res = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(base + 'g.html?id=' + nombre)}&shorturl=${alias}`);
+            const linkFinal = await res.text();
             
-            if (!res.ok) throw new Error("El alias ya existe o el servicio no responde");
-
-            const linkFinal = `https://is.gd/${alias}`;
-            
-            // 3. Mostrar en pantalla
             document.getElementById('url1').innerText = linkFinal;
             document.getElementById('listaLinks').style.display = 'block';
-            
-            // 4. Alerta de éxito a Telegram
-            await enviarAlerta(`✅ Sala "${nombre}" creada.\nLink: ${linkFinal}`);
-            alert("¡Sala creada correctamente!");
 
+            // 3. Enviar alerta directa a Make (Seguro y sin exponer tokens)
+            await fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    nombre: nombre,
+                    link: linkFinal,
+                    status: "EXITO"
+                })
+            });
+
+            alert("¡Sala creada correctamente!");
         } catch (e) {
-            console.error("ERROR DETECTADO: ", e);
-            alert("Error: " + e.message);
-            // 5. Alerta de error a Telegram
-            await enviarAlerta(`⚠️ Error en Cinyect: ${e.message} al intentar crear "${nombre}"`);
+            console.error("Error:", e);
+            // Alerta de error a Make
+            await fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    nombre: nombre,
+                    mensaje: e.message,
+                    status: "ERROR"
+                })
+            });
+            alert("Error crítico, se ha notificado al administrador.");
         }
     }
 </script>
