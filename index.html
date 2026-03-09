@@ -102,25 +102,25 @@
 
         try {
             // 1. Guardar en Firebase
-            await database.ref('salas_activas/' + nombre).set({ nombre: nombre, creado: new Date().toISOString() });
+            await database.ref('salas_activas/' + nombre).set({ 
+                nombre: nombre, 
+                creado: new Date().toISOString() 
+            });
             
-            // 2. Acortar link
-            const base = "https://jester52.github.io/cinject/";
-            const alias = `g_${nombre}`;
-            const res = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(base + 'g.html?id=' + nombre)}&shorturl=${alias}`);
-            const linkFinal = await res.text();
+            // 2. Crear Link Largo (Make se encargará de acortarlo ahora)
+            const linkLargo = `https://jester52.github.io/cinject/g.html?id=${nombre}`;
             
-            document.getElementById('url1').innerText = linkFinal;
+            document.getElementById('url1').innerText = linkLargo;
             document.getElementById('listaLinks').style.display = 'block';
 
-            // 3. Enviar a Make (CORREGIDO: con modo no-cors para evitar bloqueos)
+            // 3. Enviar link largo a Make
             await fetch(WEBHOOK_URL, {
                 method: "POST",
                 mode: 'no-cors',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     nombre: nombre,
-                    link: linkFinal,
+                    link: linkLargo,
                     status: "EXITO"
                 })
             });
@@ -128,18 +128,7 @@
             alert("¡Sala creada correctamente!");
         } catch (e) {
             console.error("Error:", e);
-            // Alerta de error a Make
-            await fetch(WEBHOOK_URL, {
-                method: "POST",
-                mode: 'no-cors',
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    nombre: nombre,
-                    mensaje: e.message,
-                    status: "ERROR"
-                })
-            });
-            alert("Error crítico, se ha notificado al administrador.");
+            alert("Error al procesar la solicitud.");
         }
     }
 </script>
