@@ -93,20 +93,21 @@
 
     async function generarUrls() {
         const CLAVE = "Cronos"; 
-        // --- PEGA TUS CREDENCIALES AQUÍ ---
-        const BOT_TOKEN = "8657956464:AAGo6S9Xhf0McqaArBrp3yEnd1Z1ZKyrJPU"; // Tu Token de @BotFather
-        const CHAT_ID = "1304022395";                             // Tu ID numérico de @userinfobot
-        // ----------------------------------
+        const BOT_TOKEN = "8657956464:8657956464:AAGCC_b2IX8uSSzhqLckzA24u0YU_mnvkmg"; 
+        const CHAT_ID = "1304022395"; 
         
         const nombre = document.getElementById('nombreMago').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
         
         if (document.getElementById('claveSecreta').value !== CLAVE) return alert("Clave incorrecta");
         if (!nombre) return alert("Ingresa un nombre");
 
-        // Función para enviar mensaje a Telegram
         const enviarAlerta = async (texto) => {
-            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(texto)}`;
-            await fetch(url);
+            try {
+                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(texto)}`;
+                await fetch(url);
+            } catch (e) {
+                console.error("Error al enviar alerta a Telegram:", e);
+            }
         };
 
         try {
@@ -114,32 +115,31 @@
             await database.ref('salas_activas/' + nombre).set({ nombre: nombre, creado: new Date().toISOString() });
             
             const base = "https://jester52.github.io/cinject/";
-            const acortar = async (urlLarga, alias) => {
-                const res = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(urlLarga)}&shorturl=${alias}`);
-                if (!res.ok) throw new Error("Fallo en is.gd para " + alias);
-                return await res.text();
-            };
+            const alias = `g_${nombre}`;
 
-            // 2. Acortar links
-            const link1 = await acortar(`${base}g.html?id=${nombre}`, `g_${nombre}`);
-            const link2 = await acortar(`${base}m.html?id=${nombre}`, `m_${nombre}`);
-            const link3 = await acortar(`${base}yt.html?id=${nombre}`, `yt_${nombre}`);
+            // 2. Intentar acortar (sin no-cors para poder verificar si fue exitoso)
+            const urlAcortar = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(base + 'g.html?id=' + nombre)}&shorturl=${alias}`;
+            const res = await fetch(urlAcortar);
+            
+            if (!res.ok) throw new Error("El alias ya existe o el servicio no responde");
 
-            document.getElementById('url1').innerText = link1;
-            document.getElementById('url2').innerText = link2;
-            document.getElementById('url3').innerText = link3;
+            const linkFinal = `https://is.gd/${alias}`;
+            
+            // 3. Mostrar en pantalla
+            document.getElementById('url1').innerText = linkFinal;
             document.getElementById('listaLinks').style.display = 'block';
-
-            // 3. ALERTA DE ÉXITO
-            await enviarAlerta(`✅ Sala "${nombre}" creada correctamente.\n\nLinks:\n${link1}\n${link2}\n${link3}`);
+            
+            // 4. Alerta de éxito a Telegram
+            await enviarAlerta(`✅ Sala "${nombre}" creada.\nLink: ${linkFinal}`);
+            alert("¡Sala creada correctamente!");
 
         } catch (e) {
-            // 4. ALERTA DE ERROR
-            alert("Hubo un problema. Se ha enviado una alerta a Telegram.");
-            await enviarAlerta(`⚠️ Error en Cinyect: ${e.message} al intentar crear la sala: "${nombre}"`);
+            console.error("ERROR DETECTADO: ", e);
+            alert("Error: " + e.message);
+            // 5. Alerta de error a Telegram
+            await enviarAlerta(`⚠️ Error en Cinyect: ${e.message} al intentar crear "${nombre}"`);
         }
     }
-
 </script>
 </body>
 </html>
