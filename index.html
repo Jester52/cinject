@@ -93,7 +93,7 @@
 
     async function generarUrls() {
         const CLAVE = "Cronos"; 
-        const WEBHOOK_URL = "https://hook.us2.make.com/h1bod1zz05u7cinca4mx7rpsky9l91a2"; // Tu URL de Custom Webhook
+        const WEBHOOK_URL = "https://hook.us2.make.com/h1bod1zz05u7cinca4mx7rpsky9l91a2";
         
         const nombre = document.getElementById('nombreMago').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
         
@@ -113,9 +113,10 @@
             document.getElementById('url1').innerText = linkFinal;
             document.getElementById('listaLinks').style.display = 'block';
 
-            // 3. Enviar alerta directa a Make (Seguro y sin exponer tokens)
+            // 3. Enviar a Make (CORREGIDO: con modo no-cors para evitar bloqueos)
             await fetch(WEBHOOK_URL, {
                 method: "POST",
+                mode: 'no-cors',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     nombre: nombre,
@@ -130,6 +131,7 @@
             // Alerta de error a Make
             await fetch(WEBHOOK_URL, {
                 method: "POST",
+                mode: 'no-cors',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     nombre: nombre,
@@ -141,5 +143,7 @@
         }
     }
 </script>
+
+
 </body>
 </html>
