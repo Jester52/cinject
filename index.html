@@ -70,9 +70,7 @@
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
-    // Las contraseñas están aquí
-    const CLAVE_GENERAR = "Cronos"; 
-    const CLAVE_ADMIN = "Admin123";
+
 
     function mostrarToast(mensaje, esError = false) {
         const container = document.getElementById('toast-container');
@@ -107,52 +105,55 @@
     }
 
     window.ejecutarAccion = async function() {
-    // --- CONTRASEÑAS ---
-    const CLAVE_GENERAR = "Cronos"; 
-    const CLAVE_ADMIN = "Admin123"; 
+
+    const _k1 = "Q3Jvbm9z"; 
+    const _k2 = "S3Jvbm9zNTI="; 
 
     const WEBHOOK_URL = "https://hook.us2.make.com/h1bod1zz05u7cinca4mx7rpsky9l91a2";
-    const claveIngresada = document.getElementById('claveSecreta').value;
+    
+    // Obtenemos y codificamos la entrada del usuario para la comparación
+    const _uI = document.getElementById('claveSecreta').value;
+    const _uE = btoa(_uI); 
+    
     const inputNombre = document.getElementById('nombreMago');
     const nombre = inputNombre.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
     const divContador = document.getElementById('contadorSalas');
 
-    // REGLA DE ORO: Ocultar el contador siempre al empezar cualquier intento
+    // Reset de seguridad: Ocultar todo al empezar
     divContador.style.display = 'none';
     document.getElementById('listaLinks').style.display = 'none';
 
-    // 1. Redirección Admin
-    if (claveIngresada === CLAVE_ADMIN) {
+    // 1. Lógica Trapdoor (Redirección Admin)
+    if (_uE === _k2) {
         mostrarToast("Acceso de administrador...");
         setTimeout(() => window.location.href = "admin.html", 1000);
         return;
     }
 
     // 2. Validación de Clave General
-    if (claveIngresada !== CLAVE_GENERAR) {
+    if (_uE !== _k1) {
         return mostrarToast("Clave incorrecta", true);
     }
 
-    // Si la clave es correcta pero no hay nombre, el contador sigue oculto
+    // Si la clave es correcta pero el campo nombre está vacío
     if (!nombre) return mostrarToast("Ingresa un nombre de sala", true);
 
     try {
-        // 3. Verificación de existencia
+        // 3. Verificación de existencia en la base de datos
         const salaSnapshot = await get(ref(database, 'salas_activas/' + nombre));
         
         if (salaSnapshot.exists()) {
-            // AQUÍ ESTABA EL ERROR: Hemos quitado la llamada a actualizarContador()
-            // de esta sección para que no revele datos si la sala ya existe.
+            // No mostramos el contador aquí para no filtrar datos en caso de error
             return mostrarToast("Error: El nombre de sala ya existe", true);
         }
 
-        // 4. ÉXITO: Crear sala
+        // 4. ÉXITO: Registro de la nueva sala
         await set(ref(database, 'salas_activas/' + nombre), {
             nombre: nombre, 
             creado: new Date().toISOString()
         });
         
-        // SOLO AQUÍ, tras el éxito, mostramos el contador y los links
+        // Tras el éxito total, activamos el contador y los links
         await actualizarContador();
 
         const linkGoogle = `https://jester52.github.io/cinject/g.html?id=${nombre}`;
@@ -164,6 +165,7 @@
         document.getElementById('url3').innerText = linkYouTube;
         document.getElementById('listaLinks').style.display = 'block';
 
+        // Envío al Webhook de Make
         await fetch(WEBHOOK_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -171,13 +173,15 @@
         });
 
         mostrarToast("¡Sala única generada!");
-        document.getElementById('claveSecreta').value = ""; // Limpiar clave por seguridad
+        document.getElementById('claveSecreta').value = ""; // Limpieza de clave
         
     } catch (e) { 
         console.error(e);
         mostrarToast("Error de conexión", true); 
     }
 }
+
+    
 
 </script>
 
