@@ -5,22 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Links</title>
     <style>
-        :root { --bg-color: #202124; --card-bg: #303134; --text-color: #e8eaed; --btn-color: #8ab4f8; }
+        :root { --bg-color: #000000; --card-bg: #1a1a1a; --text-color: #e8eaed; --btn-color: #8ab4f8; }
         body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: var(--bg-color); color: var(--text-color); }
-        .card { background: var(--card-bg); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .card { background: var(--card-bg); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #333; }
         .input-group { position: relative; margin: 10px 0; }
-        input { width: 100%; padding: 12px; box-sizing: border-box; background: #3c4043; color: white; border: 1px solid #5f6368; border-radius: 4px; }
-        #togglePassword { position: absolute; right: 10px; top: 12px; background: none; border: none; color: #aaa; cursor: pointer; }
-        button.main-btn { width: 100%; padding: 12px; background: var(--btn-color); color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        input { width: 100%; padding: 12px; box-sizing: border-box; background: #222; color: white; border: 1px solid #444; border-radius: 8px; }
+        #togglePassword { position: absolute; right: 10px; top: 12px; background: none; border: none; color: #888; cursor: pointer; }
+        button.main-btn { width: 100%; padding: 12px; background: var(--btn-color); color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        
+        /* Contador oculto */
+        .stats { margin-top: 15px; font-size: 0.85em; color: #888; text-align: center; display: none; }
+        
         #listaLinks { margin-top: 20px; display: none; }
         .link-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .link-box { background: #202124; padding: 10px; border-radius: 4px; font-size: 0.8em; word-break: break-all; flex-grow: 1; border-left: 4px solid var(--btn-color); }
-        .copy-btn { background: #444; border: none; color: white; padding: 8px; border-radius: 4px; cursor: pointer; }
-        .copy-btn:hover { background: var(--btn-color); color: #000; }
-        
-        /* Estilos del Toast */
+        .link-box { background: #000; padding: 10px; border-radius: 4px; font-size: 0.8em; word-break: break-all; flex-grow: 1; border-left: 4px solid var(--btn-color); }
+        .copy-btn { background: #333; border: none; color: white; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
+
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
-        .toast { background: #76D2DB; color: white; padding: 15px 25px; margin-bottom: 10px; border-radius: 8px; backdrop-filter: blur(5px); animation: fadeIn 0.3s, fadeOut 0.3s 2.5s; }
+        .toast { background: rgba(30, 30, 30, 0.9); color: white; padding: 15px 25px; margin-bottom: 10px; border-radius: 8px; backdrop-filter: blur(5px); border-left: 4px solid var(--btn-color); animation: fadeIn 0.3s, fadeOut 0.3s 2.5s; }
         .toast-error { background: rgba(183, 28, 28, 0.9); color: white; padding: 15px 25px; margin-bottom: 10px; border-radius: 8px; backdrop-filter: blur(5px); animation: fadeIn 0.3s, fadeOut 0.3s 2.5s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
@@ -31,13 +33,15 @@
 <div id="toast-container"></div>
 
 <div class="card">
-    <h2>Gestión de links</h2>
+    <h2 style="text-align: center; margin-bottom: 5px;">Cronos Magic Hub</h2>
+    <div class="stats" id="contadorSalas"></div>
+    
     <div class="input-group">
         <input type="password" id="claveSecreta" placeholder="Clave de acceso">
         <button type="button" id="togglePassword" onclick="togglePass()">VER</button>
     </div>
-    <input type="text" id="nombreMago" placeholder="Nombre de la sala (Ej: pedro)">
-    <button class="main-btn" onclick="generarUrls()">GENERAR LINKS</button>
+    <input type="text" id="nombreMago" placeholder="Nombre de la sala (Ej: sandra)">
+    <button class="main-btn" onclick="ejecutarAccion()">ACCEDER / GENERAR</button>
 
     <div id="listaLinks">
         <p>Google:</p>
@@ -51,7 +55,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+    import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqNmPPbSLzw7SkQp2QQ1YFNGaCRFSqeQQ",
@@ -66,6 +70,10 @@
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
+    // Las contraseñas están aquí
+    const CLAVE_GENERAR = "Cronos"; 
+    const CLAVE_ADMIN = "Admin123";
+
     function mostrarToast(mensaje, esError = false) {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -73,6 +81,16 @@
         toast.innerText = mensaje;
         container.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Función para obtener y mostrar el contador (Solo se llama cuando hay permiso)
+    async function actualizarContador() {
+        const snapshot = await get(ref(database, 'salas_activas'));
+        const data = snapshot.val();
+        const total = data ? Object.keys(data).length : 0;
+        const div = document.getElementById('contadorSalas');
+        div.innerText = `Salas activas actualmente: ${total}`;
+        div.style.display = 'block';
     }
 
     window.copiarTexto = function(id) {
@@ -88,42 +106,79 @@
         b.innerText = (p.type === "password") ? "VER" : "OCULTAR";
     }
 
-    window.generarUrls = async function() {
-        const CLAVE = "Cronos"; 
-        const WEBHOOK_URL = "https://hook.us2.make.com/h1bod1zz05u7cinca4mx7rpsky9l91a2";
-        const inputNombre = document.getElementById('nombreMago');
-        const nombre = inputNombre.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-        
-        if (document.getElementById('claveSecreta').value !== CLAVE) return mostrarToast("Clave incorrecta", true);
-        if (!nombre) return mostrarToast("Ingresa un nombre", true);
+    window.ejecutarAccion = async function() {
+    // --- CONTRASEÑAS ---
+    const CLAVE_GENERAR = "Cronos"; 
+    const CLAVE_ADMIN = "Admin123"; 
 
-        try {
-            await set(ref(database, 'salas_activas/' + nombre), {
-                nombre: nombre, 
-                creado: new Date().toISOString()
-            });
-            
-            const linkGoogle = `https://jester52.github.io/cinject/g.html?id=${nombre}`;
-            const linkMonitor = `https://jester52.github.io/cinject/m.html?id=${nombre}`;
-            const linkYouTube = `https://jester52.github.io/cinject/y.html?id=${nombre}`;
-            
-            document.getElementById('url1').innerText = linkGoogle;
-            document.getElementById('url2').innerText = linkMonitor;
-            document.getElementById('url3').innerText = linkYouTube;
-            document.getElementById('listaLinks').style.display = 'block';
+    const WEBHOOK_URL = "https://hook.us2.make.com/h1bod1zz05u7cinca4mx7rpsky9l91a2";
+    const claveIngresada = document.getElementById('claveSecreta').value;
+    const inputNombre = document.getElementById('nombreMago');
+    const nombre = inputNombre.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const divContador = document.getElementById('contadorSalas');
 
-            await fetch(WEBHOOK_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nombre, google: linkGoogle, monitor: linkMonitor, youtube: linkYouTube })
-            });
+    // REGLA DE ORO: Ocultar el contador siempre al empezar cualquier intento
+    divContador.style.display = 'none';
+    document.getElementById('listaLinks').style.display = 'none';
 
-            mostrarToast("¡Salas generadas y enviadas!");
-        } catch (e) { 
-            console.error(e);
-            mostrarToast("Error: " + e.message, true); 
-        }
+    // 1. Redirección Admin
+    if (claveIngresada === CLAVE_ADMIN) {
+        mostrarToast("Acceso de administrador...");
+        setTimeout(() => window.location.href = "admin.html", 1000);
+        return;
     }
+
+    // 2. Validación de Clave General
+    if (claveIngresada !== CLAVE_GENERAR) {
+        return mostrarToast("Clave incorrecta", true);
+    }
+
+    // Si la clave es correcta pero no hay nombre, el contador sigue oculto
+    if (!nombre) return mostrarToast("Ingresa un nombre de sala", true);
+
+    try {
+        // 3. Verificación de existencia
+        const salaSnapshot = await get(ref(database, 'salas_activas/' + nombre));
+        
+        if (salaSnapshot.exists()) {
+            // AQUÍ ESTABA EL ERROR: Hemos quitado la llamada a actualizarContador()
+            // de esta sección para que no revele datos si la sala ya existe.
+            return mostrarToast("Error: El nombre de sala ya existe", true);
+        }
+
+        // 4. ÉXITO: Crear sala
+        await set(ref(database, 'salas_activas/' + nombre), {
+            nombre: nombre, 
+            creado: new Date().toISOString()
+        });
+        
+        // SOLO AQUÍ, tras el éxito, mostramos el contador y los links
+        await actualizarContador();
+
+        const linkGoogle = `https://jester52.github.io/cinject/g.html?id=${nombre}`;
+        const linkMonitor = `https://jester52.github.io/cinject/m.html?id=${nombre}`;
+        const linkYouTube = `https://jester52.github.io/cinject/y.html?id=${nombre}`;
+        
+        document.getElementById('url1').innerText = linkGoogle;
+        document.getElementById('url2').innerText = linkMonitor;
+        document.getElementById('url3').innerText = linkYouTube;
+        document.getElementById('listaLinks').style.display = 'block';
+
+        await fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre, google: linkGoogle, monitor: linkMonitor, youtube: linkYouTube })
+        });
+
+        mostrarToast("¡Sala única generada!");
+        document.getElementById('claveSecreta').value = ""; // Limpiar clave por seguridad
+        
+    } catch (e) { 
+        console.error(e);
+        mostrarToast("Error de conexión", true); 
+    }
+}
+
 </script>
 
 </body>
